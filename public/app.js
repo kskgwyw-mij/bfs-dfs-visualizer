@@ -540,6 +540,7 @@
   const astarStatusEl = document.getElementById('astar-status');
 
   const W_START = 0;
+
   let wgraphUG = null;
   let wgraphA = null;
   let ucs = null;
@@ -551,6 +552,7 @@
 
   function buildWeightedGraphUG() {
     const nodes = [
+
       { x: 75, y: 210 },
       { x: 240, y: 210 },
       { x: 240, y: 355 },
@@ -560,23 +562,25 @@
       { x: 75, y: 65 },
       { x: 405, y: 355 }
     ];
-    const h = [10, 6, 7, 4, 3, 11, 9, 0];
+    const h = [5, 4, 6, 2, 4, 0];
     const edgeList = [
+
       [0, 1, 5], [0, 5, 3], [0, 6, 4],
       [1, 4, 8], [1, 2, 4], [2, 3, 3], [3, 7, 5], [4, 7, 4]
+
     ];
-    const adj = Array.from({ length: 8 }, () => []);
+    const adj = Array.from({ length: 6 }, () => []);
     for (const [a, b, w] of edgeList) {
       adj[a].push({ node: b, w });
       adj[b].push({ node: a, w });
     }
     adj.forEach((list) => list.sort((x, y) => x.node - y.node));
     return {
-      n: 8,
+      n: 6,
       nodes,
       adj,
       edges: edgeList,
-      labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'],
+      labels: ['S', 'A', 'B', 'C', 'D', 'G'],
       h
     };
   }
