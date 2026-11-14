@@ -151,8 +151,6 @@
   function resetSearch() {
     bfs = createState('bfs');
     dfs = createState('dfs');
-    bfs.visited.add(startNode);
-    dfs.visited.add(startNode);
     mode = 'idle';
     flash = { bfs: null, dfs: null };
     updateButtons();
