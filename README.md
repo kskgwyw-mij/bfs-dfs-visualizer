@@ -24,7 +24,7 @@ Danach im Browser öffnen: http://localhost:3000 (Port per `PORT`-Umgebungsvaria
 - **Steuerung**: Start, Pause, Einzelschritt, Zurücksetzen, Neuer Graph
 - **Geschwindigkeit**: 1x–20x einstellbar
 - **Startknoten wählbar** (Dropdown oder Klick auf einen Knoten im Canvas); der gegenüberliegende Knoten ist das Ziel – man sieht, welcher Algorithmus ihn zuerst findet
-- **Graphwahl**: Beispiel-Graph (Standard) oder zufällig generiert mit 8–15 Knoten (Spannbaum + zusätzliche Kanten für Zyklen)
+- **Graphwahl**: Beispiel-Graph (Standard) oder zufällig generiert mit 8–15 Knoten (Spannbaum + zusätzliche Kanten für Zyklen); der **Neuer Graph**-Button erzeugt sofort einen neuen Zufalls-Graphen (Buchstaben-Labels S, A–P, G), über das Dropdown kommt man zurück zum Beispiel-Graphen
 
 ## Architektur
 
