@@ -81,6 +81,71 @@
     </section>
   </main>
 
+  <section class="section-header">
+    <h2>UCS vs. Greedy Best-First vs. A* — Gewichte & Heuristik</h2>
+    <p class="subtitle">Kantenkosten auf den Kanten, h(N) = Luftlinie zum Ziel G (abgerundet). Ein Schritt = ein Pop aus der Priority Queue.</p>
+  </section>
+
+  <section class="controls">
+    <button id="btn-i-start" class="btn primary">▶ Start</button>
+    <button id="btn-i-pause" class="btn" disabled>⏸ Pause</button>
+    <button id="btn-i-step" class="btn">⏭ Einzelschritt</button>
+    <button id="btn-i-reset" class="btn">↺ Zurücksetzen</button>
+    <label class="slider-group">
+      Geschwindigkeit
+      <input type="range" id="speed2" min="1" max="20" value="1" />
+      <span id="speed2-value">1x</span>
+    </label>
+  </section>
+
+  <main class="boards boards3">
+    <section class="panel">
+      <h2 class="ucs-title">UCS — Uniform Cost <span class="badge ucs-badge">g(N)</span></h2>
+      <canvas id="ucs-canvas" width="480" height="420"></canvas>
+      <div class="structure">
+        <span class="structure-label">Priority Queue (g):</span>
+        <div id="ucs-open" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="ucs-visited">0</b></span>
+        <span>Pops: <b id="ucs-step">0</b></span>
+        <span>Status: <b id="ucs-status">bereit</b></span>
+      </div>
+    </section>
+
+    <section class="vs-divider">VS</section>
+
+    <section class="panel">
+      <h2 class="greedy-title">Greedy Best-First <span class="badge greedy-badge">h(N)</span></h2>
+      <canvas id="greedy-canvas" width="480" height="420"></canvas>
+      <div class="structure">
+        <span class="structure-label">Priority Queue (h):</span>
+        <div id="greedy-open" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="greedy-visited">0</b></span>
+        <span>Pops: <b id="greedy-step">0</b></span>
+        <span>Status: <b id="greedy-status">bereit</b></span>
+      </div>
+    </section>
+
+    <section class="vs-divider">VS</section>
+
+    <section class="panel">
+      <h2 class="astar-title">A* — A-Stern <span class="badge astar-badge">f = g + h</span></h2>
+      <canvas id="astar-canvas" width="480" height="420"></canvas>
+      <div class="structure">
+        <span class="structure-label">Priority Queue (f):</span>
+        <div id="astar-open" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="astar-visited">0</b></span>
+        <span>Pops: <b id="astar-step">0</b></span>
+        <span>Status: <b id="astar-status">bereit</b></span>
+      </div>
+    </section>
+  </main>
+
   <footer>
     <div class="legend">
       <span class="legend-item"><span class="dot unvisited"></span> Unbesucht</span>
@@ -88,6 +153,7 @@
       <span class="legend-item"><span class="dot current"></span> Aktueller Knoten</span>
       <span class="legend-item"><span class="dot visited"></span> Besucht</span>
       <span class="legend-item"><span class="dot goal"></span> Zielknoten</span>
+      <span class="legend-item" style="color:#8a94b8">Untere Sektion: Zahl auf Chip = Priorität (g, h bzw. f)</span>
     </div>
   </footer>
 

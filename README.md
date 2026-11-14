@@ -1,6 +1,6 @@
 # BFS-DFS-Visualizer
 
-Visualisiert **BFS (Breitensuche)** und **DFS (Tiefensuche)** parallel nebeneinander auf demselben Graphen – animiert im Browser, ausgeliefert von einem Node.js-Server **ohne externe Abhängigkeiten**.
+Visualisiert **BFS (Breitensuche)** und **DFS (Tiefensuche)** parallel nebeneinander auf demselben Graphen – animiert im Browser, ausgeliefert von einem Node.js-Server **ohne externe Abhängigkeiten**. Darunter: **UCS vs. Greedy Best-First vs. A\*** auf einem gewichteten Standard-Graphen mit Heuristik.
 
 ## Starten
 
@@ -15,6 +15,7 @@ Danach im Browser öffnen: http://localhost:3000 (Port per `PORT`-Umgebungsvaria
 
 - **Standard-Beispiel**: Beim Start ist der klassische Lehrbuch-Graph geladen (Knoten S, A–F, G; S = Start, G = grünes Ziel)
 - **Seiten-an-Seiten-Vergleich**: BFS (Queue/FIFO, links) und DFS (Stack/LIFO, rechts) laufen synchron auf identischem Graphen
+- **UCS vs. Greedy Best-First vs. A\***: Drei informierte/uninformierte Suche-Algorithmen parallel auf dem gewichteten Standard-Graphen (Kantenkosten + Heuristik h(N) = Luftlinie zu G); ein Schritt = ein Pop aus der Priority Queue, Prioritäten (g, h bzw. f = g + h) als Chips sichtbar, Rückgabepfad mit Kosten
 - **Animierte Canvas-Darstellung**: Knoten pulsieren, Kanten leuchten beim Entdecken auf, Farben für unbesucht / in Queue/Stack / aktuell / besucht / Ziel
 - **Live-Strukturen**: Warteschlange bzw. Stapel werden als Chips unter jedem Canvas angezeigt
 - **Steuerung**: Start, Pause, Einzelschritt, Zurücksetzen, Neuer Graph
@@ -29,6 +30,6 @@ Danach im Browser öffnen: http://localhost:3000 (Port per `PORT`-Umgebungsvaria
 | `server.js` | Minimaler HTTP-Server (Node-Builtin-Module), liefert `public/` statisch aus |
 | `public/index.html` | Oberfläche mit zwei Canvas-Panels und Steuerleiste |
 | `public/style.css` | Dark-Theme- Styling, responsives Layout |
-| `public/app.js` | Graphgenerierung, BFS-/DFS-State-Machines, Canvas-Rendering, Animation |
+| `public/app.js` | Graphgenerierung, BFS-/DFS- und UCS/Greedy/A*-State-Machines, Canvas-Rendering, Animation |
 
 Die Suchalgorithmen laufen clientseitig als zustandsbehaftete Schrittmaschinen; beide führen pro Tick genau einen Schritt aus, sodass der Vergleich fair im Gleichschritt bleibt.
