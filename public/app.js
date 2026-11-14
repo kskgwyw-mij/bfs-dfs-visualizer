@@ -186,6 +186,12 @@
         bfs.container.push(v);
         bfs.treeEdges.push([u, v]);
         flash.bfs = { edge: [u, v], time: performance.now() };
+        if (v === goalNode) {
+          bfs.done = true;
+          bfs.found = true;
+          bfsStatusEl.textContent = '🎉 Ziel gefunden!';
+          return;
+        }
       }
     }
   }
