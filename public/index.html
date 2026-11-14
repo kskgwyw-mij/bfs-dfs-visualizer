@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BFS vs. DFS Visualizer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>BFS vs. DFS — Parallele Visualisierung</h1>
+    <p class="subtitle">Breitensuche (Warteschlange) und Tiefensuche (Stack) laufen synchron auf demselben Graphen</p>
+  </header>
+
+  <section class="controls">
+    <button id="btn-start" class="btn primary">▶ Start</button>
+    <button id="btn-pause" class="btn" disabled>⏸ Pause</button>
+    <button id="btn-step" class="btn">⏭ Einzelschritt</button>
+    <button id="btn-reset" class="btn">↺ Zurücksetzen</button>
+    <button id="btn-newgraph" class="btn">🎲 Neuer Graph</button>
+
+    <label class="slider-group">
+      Geschwindigkeit
+      <input type="range" id="speed" min="1" max="20" value="8" />
+      <span id="speed-value">8x</span>
+    </label>
+
+    <label class="select-group">
+      Startknoten
+      <select id="start-node"></select>
+    </label>
+
+    <label class="select-group">
+      Knoten
+      <select id="node-count">
+        <option value="8">8</option>
+        <option value="10" selected>10</option>
+        <option value="12">12</option>
+        <option value="15">15</option>
+      </select>
+    </label>
+  </section>
+
+  <main class="boards">
+    <section class="panel">
+      <h2 class="bfs-title">BFS — Breitensuche <span class="badge queue-badge">Queue (FIFO)</span></h2>
+      <canvas id="bfs-canvas" width="560" height="440"></canvas>
+      <div class="structure">
+        <span class="structure-label">Warteschlange:</span>
+        <div id="bfs-queue" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="bfs-visited">0</b></span>
+        <span>Schritt: <b id="bfs-step">0</b></span>
+        <span>Status: <b id="bfs-status">bereit</b></span>
+      </div>
+    </section>
+
+    <section class="vs-divider">VS</section>
+
+    <section class="panel">
+      <h2 class="dfs-title">DFS — Tiefensuche <span class="badge stack-badge">Stack (LIFO)</span></h2>
+      <canvas id="dfs-canvas" width="560" height="440"></canvas>
+      <div class="structure">
+        <span class="structure-label">Stapel (links = Top):</span>
+        <div id="dfs-stack" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="bfs-visited-dfs">0</b></span>
+        <span>Schritt: <b id="dfs-step">0</b></span>
+        <span>Status: <b id="dfs-status">bereit</b></span>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="legend">
+      <span class="legend-item"><span class="dot unvisited"></span> Unbesucht</span>
+      <span class="legend-item"><span class="dot frontier"></span> In Queue/Stack</span>
+      <span class="legend-item"><span class="dot current"></span> Aktueller Knoten</span>
+      <span class="legend-item"><span class="dot visited"></span> Besucht</span>
+      <span class="legend-item"><span class="dot goal"></span> Zielknoten</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
