@@ -28,6 +28,7 @@
   const startNodeSelect = document.getElementById('start-node');
   const nodeCountSelect = document.getElementById('node-count');
 
+  const graphModeSelect = document.getElementById('graph-mode');
   const bfsQueueEl = document.getElementById('bfs-queue');
   const dfsStackEl = document.getElementById('dfs-stack');
   const bfsVisitedEl = document.getElementById('bfs-visited');
@@ -45,6 +46,38 @@
   let mode = 'idle';
   let lastStepTime = 0;
   let flash = { bfs: null, dfs: null };
+
+  function buildExampleGraph() {
+    const nodes = [
+      { x: 60, y: 220 },
+      { x: 160, y: 140 },
+      { x: 280, y: 60 },
+      { x: 270, y: 210 },
+      { x: 170, y: 330 },
+      { x: 320, y: 360 },
+      { x: 420, y: 290 },
+      { x: 500, y: 160 }
+    ];
+    const edgePairs = [
+      [0, 1], [0, 4], [1, 2], [1, 3], [2, 3],
+      [2, 7], [3, 6], [4, 3], [4, 5], [5, 6], [6, 7]
+    ];
+    const adj = Array.from({ length: 8 }, () => []);
+    const edges = [];
+    for (const [a, b] of edgePairs) {
+      adj[a].push(b);
+      adj[b].push(a);
+      edges.push([a, b]);
+    }
+    adj.forEach((list) => list.sort((x, y) => x - y));
+    return {
+      n: 8,
+      nodes,
+      adj,
+      edges,
+      labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
+    };
+  }
 
   function generateGraph(n) {
     const width = bfsCanvas.width;
@@ -93,7 +126,13 @@
     }
 
     adj.forEach((list) => list.sort((x, y) => x - y));
-    return { n, nodes, adj, edges };
+    return {
+      n,
+      nodes,
+      adj,
+      edges,
+      labels: Array.from({ length: n }, (_, i) => String(i))
+    };
   }
 
   function createState(kind) {
@@ -290,7 +329,7 @@
       ctx.font = 'bold 12px Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(String(i), p.x, p.y + 0.5);
+      ctx.fillText(graph.labels[i], p.x, p.y + 0.5);
     }
 
     ctx.fillStyle = 'rgba(230, 236, 255, 0.55)';
@@ -310,7 +349,7 @@
     bfs.container.forEach((node) => {
       const chip = document.createElement('span');
       chip.className = 'chip' + (node === bfs.container[0] ? ' top' : '');
-      chip.textContent = node;
+      chip.textContent = graph.labels[node];
       bfsQueueEl.appendChild(chip);
     });
     if (bfs.container.length === 0) {
@@ -322,7 +361,7 @@
     for (let i = stack.length - 1; i >= 0; i--) {
       const chip = document.createElement('span');
       chip.className = 'chip' + (i === stack.length - 1 ? ' top' : '');
-      chip.textContent = stack[i].node;
+      chip.textContent = graph.labels[stack[i].node];
       dfsStackEl.appendChild(chip);
     }
     if (stack.length === 0) {
@@ -359,19 +398,23 @@
     requestAnimationFrame(loop);
   }
 
-  function newGraph() {
-    const n = Number(nodeCountSelect.value);
-    graph = generateGraph(n);
+  function loadGraph() {
+    if (graphModeSelect.value === 'example') {
+      graph = buildExampleGraph();
+    } else {
+      graph = generateGraph(Number(nodeCountSelect.value));
+    }
     startNode = 0;
-    goalNode = n - 1;
+    goalNode = graph.n - 1;
     startNodeSelect.innerHTML = '';
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < graph.n; i++) {
       const opt = document.createElement('option');
       opt.value = i;
-      opt.textContent = `Knoten ${i}`;
+      opt.textContent = `Knoten ${graph.labels[i]}`;
       startNodeSelect.appendChild(opt);
     }
     startNodeSelect.value = '0';
+    nodeCountSelect.disabled = graphModeSelect.value === 'example';
     resetSearch();
   }
 
@@ -401,7 +444,9 @@
 
   btnReset.addEventListener('click', resetSearch);
 
-  btnNewGraph.addEventListener('click', newGraph);
+  btnNewGraph.addEventListener('click', loadGraph);
+
+  graphModeSelect.addEventListener('change', loadGraph);
 
   speedInput.addEventListener('input', () => {
     speedValue.textContent = speedInput.value + 'x';
@@ -438,7 +483,7 @@
     });
   });
 
-  newGraph();
+  loadGraph();
   requestAnimationFrame(render);
   requestAnimationFrame(loop);
 })();
