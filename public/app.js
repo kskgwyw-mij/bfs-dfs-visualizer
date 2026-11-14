@@ -74,6 +74,7 @@
       n: 8,
       nodes,
       adj,
+      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
     };
@@ -130,6 +131,7 @@
       n,
       nodes,
       adj,
+      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: Array.from({ length: n }, (_, i) => String(i))
     };
@@ -186,12 +188,6 @@
         bfs.container.push(v);
         bfs.treeEdges.push([u, v]);
         flash.bfs = { edge: [u, v], time: performance.now() };
-        if (v === goalNode) {
-          bfs.done = true;
-          bfs.found = true;
-          bfsStatusEl.textContent = '🎉 Ziel gefunden!';
-          return;
-        }
       }
     }
   }
@@ -215,18 +211,13 @@
         return;
       }
     }
-    while (top.nextIdx < graph.adj[top.node].length) {
-      const v = graph.adj[top.node][top.nextIdx];
+    while (top.nextIdx < graph.dfsAdj[top.node].length) {
+      const v = graph.dfsAdj[top.node][top.nextIdx];
       top.nextIdx++;
       if (!dfs.visited.has(v) && !dfs.container.some((e) => e.node === v)) {
         dfs.container.push({ node: v, nextIdx: 0 });
         dfs.treeEdges.push([top.node, v]);
         flash.dfs = { edge: [top.node, v], time: performance.now() };
-        if (v === goalNode) {
-          dfs.done = true;
-          dfs.found = true;
-          dfsStatusEl.textContent = '🎉 Ziel gefunden!';
-        }
         return;
       }
     }
