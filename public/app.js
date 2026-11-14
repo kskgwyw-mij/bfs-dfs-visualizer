@@ -361,10 +361,11 @@
   function render() {
     drawBoard(bfsCtx, bfs, '#38bdf8');
     drawBoard(dfsCtx, dfs, '#f472b6');
-    if (ucs && greedy && astar) {
+    if (ucs && greedy && astar && astar2) {
       drawWeightedBoard(ucsCtx, ucs, '#34d399', 'ucs');
       drawWeightedBoard(greedyCtx, greedy, '#fb923c', 'greedy');
       drawWeightedBoard(astarCtx, astar, '#a78bfa', 'astar');
+      drawWeightedBoard(astar2Ctx, astar2, '#a78bfa', 'astar');
     }
     requestAnimationFrame(render);
   }
@@ -515,14 +516,17 @@
   const ucsCanvas = document.getElementById('ucs-canvas');
   const greedyCanvas = document.getElementById('greedy-canvas');
   const astarCanvas = document.getElementById('astar-canvas');
+  const astar2Canvas = document.getElementById('astar2-canvas');
   const ucsCtx = ucsCanvas.getContext('2d');
   const greedyCtx = greedyCanvas.getContext('2d');
   const astarCtx = astarCanvas.getContext('2d');
+  const astar2Ctx = astar2Canvas.getContext('2d');
 
   const btnIStart = document.getElementById('btn-i-start');
   const btnIPause = document.getElementById('btn-i-pause');
   const btnIStep = document.getElementById('btn-i-step');
   const btnIReset = document.getElementById('btn-i-reset');
+  const btnINewGraph = document.getElementById('btn-i-newgraph');
   const speed2Input = document.getElementById('speed2');
   const speed2Value = document.getElementById('speed2-value');
 
@@ -535,6 +539,10 @@
   const ucsStepEl = document.getElementById('ucs-step');
   const greedyStepEl = document.getElementById('greedy-step');
   const astarStepEl = document.getElementById('astar-step');
+  const astar2OpenEl = document.getElementById('astar2-open');
+  const astar2VisitedEl = document.getElementById('astar2-visited');
+  const astar2StepEl = document.getElementById('astar2-step');
+  const astar2StatusEl = document.getElementById('astar2-status');
   const ucsStatusEl = document.getElementById('ucs-status');
   const greedyStatusEl = document.getElementById('greedy-status');
   const astarStatusEl = document.getElementById('astar-status');
@@ -546,9 +554,10 @@
   let ucs = null;
   let greedy = null;
   let astar = null;
+  let astar2 = null;
   let mode2 = 'idle';
   let lastStepTime2 = 0;
-  let flash2 = { ucs: null, greedy: null, astar: null };
+  let flash2 = { ucs: null, greedy: null, astar: null, astar2: null };
 
   function buildWeightedGraphUG() {
     const nodes = [
@@ -610,6 +619,78 @@
       labels: ['S', 'A', 'B', 'C', 'D', 'G'],
       h
     };
+  }
+
+  function generateWeightedGraph(n) {
+    const width = ucsCanvas.width;
+    const height = ucsCanvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = Math.min(width, height) / 2 - 55;
+
+    const nodes = [];
+    for (let i = 0; i < n; i++) {
+      const angle = (2 * Math.PI * i) / n - Math.PI / 2;
+      const jitter = radius * 0.18;
+      nodes.push({
+        x: cx + Math.cos(angle) * radius + (Math.random() - 0.5) * jitter,
+        y: cy + Math.sin(angle) * radius + (Math.random() - 0.5) * jitter
+      });
+    }
+
+    const adj = Array.from({ length: n }, () => []);
+    const edgeList = [];
+    const seen = new Set();
+
+    const addEdge = (a, b) => {
+      if (a === b) return false;
+      const key = Math.min(a, b) + '-' + Math.max(a, b);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      const w = 1 + Math.floor(Math.random() * 9);
+      adj[a].push({ node: b, w });
+      adj[b].push({ node: a, w });
+      edgeList.push([a, b, w]);
+      return true;
+    };
+
+    for (let i = 1; i < n; i++) {
+      addEdge(i, Math.floor(Math.random() * i));
+    }
+
+    const targetExtra = Math.max(2, Math.floor(n * 0.5));
+    let extra = 0;
+    let tries = 0;
+    while (extra < targetExtra && tries < 300) {
+      const a = Math.floor(Math.random() * n);
+      const b = Math.floor(Math.random() * n);
+      if (addEdge(a, b)) extra++;
+      tries++;
+    }
+
+    adj.forEach((list) => list.sort((x, y) => x.node - y.node));
+
+    const goal = n - 1;
+    const h = new Array(n).fill(Infinity);
+    h[goal] = 0;
+    const queue = [goal];
+    while (queue.length > 0) {
+      const u = queue.shift();
+      for (const nb of adj[u]) {
+        if (h[nb.node] === Infinity) {
+          h[nb.node] = h[u] + 1;
+          queue.push(nb.node);
+        }
+      }
+    }
+
+    const labels = Array.from({ length: n }, (_, i) => {
+      if (i === 0) return 'S';
+      if (i === n - 1) return 'G';
+      return String.fromCharCode(64 + i);
+    });
+
+    return { n, nodes, adj, edges: edgeList, labels, h };
   }
 
   function createInformedState(kind, g) {
@@ -707,7 +788,8 @@
     const configs = [
       [ucs, 'ucs', ucsOpenEl],
       [greedy, 'greedy', greedyOpenEl],
-      [astar, 'astar', astarOpenEl]
+      [astar, 'astar', astarOpenEl],
+      [astar2, 'astar', astar2OpenEl]
     ];
     for (const [state, mode, el] of configs) {
       el.innerHTML = '';
@@ -728,9 +810,11 @@
     ucsVisitedEl.textContent = ucs.visited.size;
     greedyVisitedEl.textContent = greedy.visited.size;
     astarVisitedEl.textContent = astar.visited.size;
+    astar2VisitedEl.textContent = astar2.visited.size;
     ucsStepEl.textContent = ucs.steps;
     greedyStepEl.textContent = greedy.steps;
     astarStepEl.textContent = astar.steps;
+    astar2StepEl.textContent = astar2.steps;
   }
 
   function updateInformedButtons() {
@@ -742,12 +826,14 @@
   function resetInformed() {
     ucs = createInformedState('ucs', wgraphUG);
     greedy = createInformedState('greedy', wgraphUG);
-    astar = createInformedState('astar', wgraphA);
+    astar = createInformedState('astar', wgraphUG);
+    astar2 = createInformedState('astar2', wgraphA);
     mode2 = 'idle';
-    flash2 = { ucs: null, greedy: null, astar: null };
+    flash2 = { ucs: null, greedy: null, astar: null, astar2: null };
     ucsStatusEl.textContent = 'bereit';
     greedyStatusEl.textContent = 'bereit';
     astarStatusEl.textContent = 'bereit';
+    astar2StatusEl.textContent = 'bereit';
     updateInformedButtons();
     updateInformedChips();
     updateInformedStats();
@@ -757,9 +843,10 @@
     informedStep(ucs, 'ucs', ucsStatusEl);
     informedStep(greedy, 'greedy', greedyStatusEl);
     informedStep(astar, 'astar', astarStatusEl);
+    informedStep(astar2, 'astar', astar2StatusEl);
     updateInformedChips();
     updateInformedStats();
-    if (ucs.done && greedy.done && astar.done) {
+    if (ucs.done && greedy.done && astar.done && astar2.done) {
       mode2 = 'done';
       updateInformedButtons();
     }
@@ -892,6 +979,7 @@
     ucsStatusEl.textContent = 'läuft…';
     greedyStatusEl.textContent = 'läuft…';
     astarStatusEl.textContent = 'läuft…';
+    astar2StatusEl.textContent = 'läuft…';
     updateInformedButtons();
   });
 
@@ -907,6 +995,14 @@
   });
 
   btnIReset.addEventListener('click', resetInformed);
+
+  btnINewGraph.addEventListener('click', () => {
+    const n = 8 + Math.floor(Math.random() * 5);
+    const g = generateWeightedGraph(n);
+    wgraphUG = g;
+    wgraphA = g;
+    resetInformed();
+  });
 
   speed2Input.addEventListener('input', () => {
     speed2Value.textContent = speed2Input.value + 'x';

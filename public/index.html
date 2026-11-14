@@ -83,7 +83,7 @@
 
   <section class="section-header">
     <h2>UCS vs. Greedy Best-First vs. A* — Gewichte & Heuristik</h2>
-    <p class="subtitle">Kantenkosten auf den Kanten, h(N) = Luftlinie zum Ziel G (abgerundet). UCS &amp; Greedy: 8-Knoten-Graph (S, A–F, G) · A*: 6-Knoten-Graph (S, A–D, G). Ein Schritt = ein Pop aus der Priority Queue.</p>
+    <p class="subtitle">Kantenkosten auf den Kanten, h(N) = Luftlinie zum Ziel G (abgerundet). UCS, Greedy &amp; A* laufen auf demselben 8-Knoten-Graph (S, A–F, G) · Darunter: A* auf dem 6-Knoten-Standard-Graph (S, A–D, G). Ein Schritt = ein Pop aus der Priority Queue.</p>
   </section>
 
   <section class="controls">
@@ -91,6 +91,7 @@
     <button id="btn-i-pause" class="btn" disabled>⏸ Pause</button>
     <button id="btn-i-step" class="btn">⏭ Einzelschritt</button>
     <button id="btn-i-reset" class="btn">↺ Zurücksetzen</button>
+    <button id="btn-i-newgraph" class="btn">🎲 Neuer Graph</button>
     <label class="slider-group">
       Geschwindigkeit
       <input type="range" id="speed2" min="1" max="20" value="1" />
@@ -142,6 +143,22 @@
         <span>Besucht: <b id="astar-visited">0</b></span>
         <span>Pops: <b id="astar-step">0</b></span>
         <span>Status: <b id="astar-status">bereit</b></span>
+      </div>
+    </section>
+  </main>
+
+  <main class="boards boards-single">
+    <section class="panel">
+      <h2 class="astar-title">A* — A-Stern (6-Knoten-Standard) <span class="badge astar-badge">f = g + h</span></h2>
+      <canvas id="astar2-canvas" width="480" height="420"></canvas>
+      <div class="structure">
+        <span class="structure-label">Priority Queue (f):</span>
+        <div id="astar2-open" class="chips"></div>
+      </div>
+      <div class="stats">
+        <span>Besucht: <b id="astar2-visited">0</b></span>
+        <span>Pops: <b id="astar2-step">0</b></span>
+        <span>Status: <b id="astar2-status">bereit</b></span>
       </div>
     </section>
   </main>
