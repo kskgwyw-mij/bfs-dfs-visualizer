@@ -79,6 +79,15 @@
     };
   }
 
+  function nodeLabels(n) {
+    const middle = ['A', 'B', 'C', 'D', 'E', 'F', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'];
+    return Array.from({ length: n }, (_, i) => {
+      if (i === 0) return 'S';
+      if (i === n - 1) return 'G';
+      return middle[i - 1] || String(i);
+    });
+  }
+
   function generateGraph(n) {
     const width = bfsCanvas.width;
     const height = bfsCanvas.height;
@@ -131,7 +140,7 @@
       nodes,
       adj,
       edges,
-      labels: Array.from({ length: n }, (_, i) => String(i))
+      labels: nodeLabels(n)
     };
   }
 
@@ -470,7 +479,10 @@
 
   btnReset.addEventListener('click', resetSearch);
 
-  btnNewGraph.addEventListener('click', loadGraph);
+  btnNewGraph.addEventListener('click', () => {
+    graphModeSelect.value = 'random';
+    loadGraph();
+  });
 
   graphModeSelect.addEventListener('change', loadGraph);
 
@@ -684,11 +696,7 @@
       }
     }
 
-    const labels = Array.from({ length: n }, (_, i) => {
-      if (i === 0) return 'S';
-      if (i === n - 1) return 'G';
-      return String.fromCharCode(64 + i);
-    });
+    const labels = nodeLabels(n);
 
     return { n, nodes, adj, edges: edgeList, labels, h };
   }
