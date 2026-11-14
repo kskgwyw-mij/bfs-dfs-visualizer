@@ -125,6 +125,55 @@ select {
   margin: 0 auto;
 }
 
+.section-header {
+  text-align: center;
+  margin: 2rem auto 1rem;
+  max-width: 1280px;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+}
+
+.section-header .subtitle {
+  margin-top: 0.3rem;
+}
+
+.boards3 .panel {
+  flex: 1 1 320px;
+  min-width: 280px;
+}
+
+.boards3 .vs-divider {
+  width: 40px;
+  height: 40px;
+  font-size: 0.8rem;
+}
+
+.ucs-title {
+  color: #34d399;
+}
+
+.greedy-title {
+  color: #fb923c;
+}
+
+.astar-title {
+  color: #a78bfa;
+}
+
+.ucs-badge {
+  background: #34d399;
+}
+
+.greedy-badge {
+  background: #fb923c;
+}
+
+.astar-badge {
+  background: #a78bfa;
+}
+
 .panel {
   flex: 1;
   background: var(--panel);
@@ -300,6 +349,11 @@ footer {
 
 @media (max-width: 1000px) {
   .boards {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .boards3 {
     flex-direction: column;
     align-items: center;
   }

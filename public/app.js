@@ -361,6 +361,11 @@
   function render() {
     drawBoard(bfsCtx, bfs, '#38bdf8');
     drawBoard(dfsCtx, dfs, '#f472b6');
+    if (wgraph) {
+      drawWeightedBoard(ucsCtx, ucs, '#34d399', 'ucs');
+      drawWeightedBoard(greedyCtx, greedy, '#fb923c', 'greedy');
+      drawWeightedBoard(astarCtx, astar, '#a78bfa', 'astar');
+    }
     requestAnimationFrame(render);
   }
 
@@ -413,6 +418,7 @@
 
   function loop(now) {
     tick(now);
+    tickInformed(now);
     requestAnimationFrame(loop);
   }
 
@@ -505,4 +511,374 @@
   loadGraph();
   requestAnimationFrame(render);
   requestAnimationFrame(loop);
+
+  const ucsCanvas = document.getElementById('ucs-canvas');
+  const greedyCanvas = document.getElementById('greedy-canvas');
+  const astarCanvas = document.getElementById('astar-canvas');
+  const ucsCtx = ucsCanvas.getContext('2d');
+  const greedyCtx = greedyCanvas.getContext('2d');
+  const astarCtx = astarCanvas.getContext('2d');
+
+  const btnIStart = document.getElementById('btn-i-start');
+  const btnIPause = document.getElementById('btn-i-pause');
+  const btnIStep = document.getElementById('btn-i-step');
+  const btnIReset = document.getElementById('btn-i-reset');
+  const speed2Input = document.getElementById('speed2');
+  const speed2Value = document.getElementById('speed2-value');
+
+  const ucsOpenEl = document.getElementById('ucs-open');
+  const greedyOpenEl = document.getElementById('greedy-open');
+  const astarOpenEl = document.getElementById('astar-open');
+  const ucsVisitedEl = document.getElementById('ucs-visited');
+  const greedyVisitedEl = document.getElementById('greedy-visited');
+  const astarVisitedEl = document.getElementById('astar-visited');
+  const ucsStepEl = document.getElementById('ucs-step');
+  const greedyStepEl = document.getElementById('greedy-step');
+  const astarStepEl = document.getElementById('astar-step');
+  const ucsStatusEl = document.getElementById('ucs-status');
+  const greedyStatusEl = document.getElementById('greedy-status');
+  const astarStatusEl = document.getElementById('astar-status');
+
+  const W_START = 0;
+  const W_GOAL = 7;
+  let wgraph = null;
+  let ucs = null;
+  let greedy = null;
+  let astar = null;
+  let mode2 = 'idle';
+  let lastStepTime2 = 0;
+  let flash2 = { ucs: null, greedy: null, astar: null };
+
+  function buildWeightedGraph() {
+    const nodes = [
+      { x: 75, y: 210 },
+      { x: 240, y: 210 },
+      { x: 240, y: 355 },
+      { x: 405, y: 355 },
+      { x: 405, y: 65 },
+      { x: 75, y: 355 },
+      { x: 75, y: 65 },
+      { x: 405, y: 210 }
+    ];
+    const h = [10, 6, 7, 4, 3, 11, 9, 0];
+    const edgeList = [
+      [0, 1, 5], [0, 2, 4], [0, 5, 3], [0, 6, 4],
+      [1, 4, 8], [2, 3, 3], [3, 7, 5], [4, 7, 4]
+    ];
+    const adj = Array.from({ length: 8 }, () => []);
+    for (const [a, b, w] of edgeList) {
+      adj[a].push({ node: b, w });
+      adj[b].push({ node: a, w });
+    }
+    adj.forEach((list) => list.sort((x, y) => x.node - y.node));
+    return {
+      n: 8,
+      nodes,
+      adj,
+      edges: edgeList,
+      labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'],
+      h
+    };
+  }
+
+  function createInformedState(kind) {
+    return {
+      kind,
+      visited: new Set(),
+      open: [{ node: W_START, g: 0, parent: -1 }],
+      parent: new Array(wgraph.n).fill(-1),
+      treeEdges: [],
+      steps: 0,
+      current: null,
+      done: false,
+      found: false,
+      path: null,
+      cost: null
+    };
+  }
+
+  function prio(mode, entry) {
+    if (mode === 'ucs') return entry.g;
+    if (mode === 'greedy') return wgraph.h[entry.node];
+    return entry.g + wgraph.h[entry.node];
+  }
+
+  function popMin(state, mode) {
+    let best = 0;
+    for (let i = 1; i < state.open.length; i++) {
+      if (prio(mode, state.open[i]) < prio(mode, state.open[best])) best = i;
+    }
+    return state.open.splice(best, 1)[0];
+  }
+
+  function finishInformed(state, statusEl) {
+    state.done = true;
+    state.found = true;
+    const path = [];
+    const seen = new Set();
+    let cur = W_GOAL;
+    while (cur !== -1 && !seen.has(cur)) {
+      path.push(cur);
+      seen.add(cur);
+      if (cur === W_START) break;
+      cur = state.parent[cur];
+    }
+    path.reverse();
+    state.path = path;
+    statusEl.textContent = `🎉 ${path.map((i) => wgraph.labels[i]).join('-')} (Kosten: ${state.cost})`;
+  }
+
+  function informedStep(state, mode, statusEl) {
+    if (state.done) return;
+    if (state.open.length === 0) {
+      state.done = true;
+      statusEl.textContent = 'fertig (Ziel nicht gefunden)';
+      return;
+    }
+    const entry = popMin(state, mode);
+    state.steps++;
+    if (state.visited.has(entry.node)) {
+      state.current = null;
+      statusEl.textContent = `${wgraph.labels[entry.node]} übersprungen (Duplikat)`;
+      return;
+    }
+    state.visited.add(entry.node);
+    state.parent[entry.node] = entry.parent;
+    state.current = entry.node;
+    if (entry.node === W_GOAL) {
+      state.cost = entry.g;
+      finishInformed(state, statusEl);
+      return;
+    }
+    const newEdges = [];
+    for (const nb of wgraph.adj[entry.node]) {
+      if (!state.visited.has(nb.node)) {
+        state.open.push({ node: nb.node, g: entry.g + nb.w, parent: entry.node });
+        newEdges.push([entry.node, nb.node]);
+      }
+    }
+    if (newEdges.length) {
+      state.treeEdges.push(...newEdges);
+      flash2[state.kind] = { edges: newEdges, time: performance.now() };
+    }
+  }
+
+  function sortedOpen(state, mode) {
+    return state.open
+      .map((e, i) => ({ e, i }))
+      .sort((x, y) => prio(mode, x.e) - prio(mode, y.e) || x.i - y.i)
+      .map((o) => o.e);
+  }
+
+  function updateInformedChips() {
+    const configs = [
+      [ucs, 'ucs', ucsOpenEl],
+      [greedy, 'greedy', greedyOpenEl],
+      [astar, 'astar', astarOpenEl]
+    ];
+    for (const [state, mode, el] of configs) {
+      el.innerHTML = '';
+      const sorted = sortedOpen(state, mode);
+      sorted.forEach((entry, idx) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (idx === 0 ? ' top' : '');
+        chip.textContent = `${wgraph.labels[entry.node]}:${prio(mode, entry)}`;
+        el.appendChild(chip);
+      });
+      if (sorted.length === 0) {
+        el.innerHTML = '<span class="chip" style="background:#3b4664;color:#8a94b8">leer</span>';
+      }
+    }
+  }
+
+  function updateInformedStats() {
+    ucsVisitedEl.textContent = ucs.visited.size;
+    greedyVisitedEl.textContent = greedy.visited.size;
+    astarVisitedEl.textContent = astar.visited.size;
+    ucsStepEl.textContent = ucs.steps;
+    greedyStepEl.textContent = greedy.steps;
+    astarStepEl.textContent = astar.steps;
+  }
+
+  function updateInformedButtons() {
+    btnIStart.disabled = mode2 === 'running' || mode2 === 'done';
+    btnIPause.disabled = mode2 !== 'running';
+    btnIStep.disabled = mode2 === 'running' || mode2 === 'done';
+  }
+
+  function resetInformed() {
+    ucs = createInformedState('ucs');
+    greedy = createInformedState('greedy');
+    astar = createInformedState('astar');
+    mode2 = 'idle';
+    flash2 = { ucs: null, greedy: null, astar: null };
+    ucsStatusEl.textContent = 'bereit';
+    greedyStatusEl.textContent = 'bereit';
+    astarStatusEl.textContent = 'bereit';
+    updateInformedButtons();
+    updateInformedChips();
+    updateInformedStats();
+  }
+
+  function stepInformedAll() {
+    informedStep(ucs, 'ucs', ucsStatusEl);
+    informedStep(greedy, 'greedy', greedyStatusEl);
+    informedStep(astar, 'astar', astarStatusEl);
+    updateInformedChips();
+    updateInformedStats();
+    if (ucs.done && greedy.done && astar.done) {
+      mode2 = 'done';
+      updateInformedButtons();
+    }
+  }
+
+  function tickInformed(now) {
+    if (mode2 !== 'running') return;
+    const interval = 800 / Number(speed2Input.value);
+    if (now - lastStepTime2 >= interval) {
+      lastStepTime2 = now;
+      stepInformedAll();
+    }
+  }
+
+  function drawWeightedBoard(ctx, state, accent, mode) {
+    const { n, nodes, edges, h } = wgraph;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    const treeSet = new Set(state.treeEdges.map(([a, b]) => Math.min(a, b) + '-' + Math.max(a, b)));
+    const frontier = new Set();
+    for (const entry of state.open) {
+      if (!state.visited.has(entry.node)) frontier.add(entry.node);
+    }
+    const now = performance.now();
+    const activeFlash = flash2[state.kind];
+    const flashSet = new Set();
+    if (activeFlash && now - activeFlash.time < 450) {
+      for (const [a, b] of activeFlash.edges) {
+        flashSet.add(Math.min(a, b) + '-' + Math.max(a, b));
+      }
+    }
+
+    for (const [a, b, w] of edges) {
+      const key = Math.min(a, b) + '-' + Math.max(a, b);
+      const isTree = treeSet.has(key);
+      const isFlash = flashSet.has(key);
+      const touched = state.visited.has(a) && state.visited.has(b);
+
+      ctx.beginPath();
+      ctx.moveTo(nodes[a].x, nodes[a].y);
+      ctx.lineTo(nodes[b].x, nodes[b].y);
+      if (isTree) {
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = isFlash ? 4 : 2.5;
+        ctx.globalAlpha = 0.95;
+      } else if (touched) {
+        ctx.strokeStyle = COLORS.edgeVisited;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.9;
+      } else {
+        ctx.strokeStyle = COLORS.edge;
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.6;
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      if (isFlash) {
+        const t = (now - activeFlash.time) / 450;
+        ctx.beginPath();
+        const mx = (nodes[a].x + nodes[b].x) / 2;
+        const my = (nodes[a].y + nodes[b].y) / 2;
+        ctx.arc(mx, my, 3 + t * 14, 0, 2 * Math.PI);
+        ctx.strokeStyle = accent;
+        ctx.globalAlpha = 1 - t;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      const mx = (nodes[a].x + nodes[b].x) / 2;
+      const my = (nodes[a].y + nodes[b].y) / 2;
+      const dx = nodes[b].x - nodes[a].x;
+      const dy = nodes[b].y - nodes[a].y;
+      const len = Math.hypot(dx, dy) || 1;
+      const ox = (-dy / len) * 12;
+      const oy = (dx / len) * 12;
+      const label = String(w);
+      ctx.font = 'bold 11px Segoe UI, sans-serif';
+      const tw = ctx.measureText(label).width;
+      ctx.fillStyle = 'rgba(16, 22, 39, 0.85)';
+      ctx.fillRect(mx + ox - tw / 2 - 3, my + oy - 8, tw + 6, 14);
+      ctx.fillStyle = isTree ? accent : '#8a94b8';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, mx + ox, my + oy - 1);
+    }
+
+    for (let i = 0; i < n; i++) {
+      const p = nodes[i];
+      const isStart = i === W_START;
+      const isGoal = i === W_GOAL;
+      let fill = COLORS.unvisited;
+      let r = 16;
+      if (state.visited.has(i)) fill = COLORS.visited;
+      if (frontier.has(i)) fill = COLORS.frontier;
+      if (state.current === i && !state.done) {
+        fill = COLORS.current;
+        r = 18 + Math.sin(now / 120) * 2.5;
+      }
+      if (isGoal) fill = COLORS.goal;
+      if (isStart && !state.visited.has(i)) fill = '#38bdf8';
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      if (isStart || isGoal) {
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = isStart ? '#38bdf8' : '#a855f7';
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#0b0f1a';
+      ctx.font = 'bold 12px Segoe UI, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(wgraph.labels[i], p.x, p.y + 0.5);
+
+      ctx.fillStyle = 'rgba(230, 236, 255, 0.65)';
+      ctx.font = '10px Segoe UI, sans-serif';
+      ctx.fillText(`h=${h[i]}`, p.x, p.y + r + 10);
+    }
+  }
+
+  btnIStart.addEventListener('click', () => {
+    if (mode2 === 'done') return;
+    mode2 = 'running';
+    lastStepTime2 = 0;
+    ucsStatusEl.textContent = 'läuft…';
+    greedyStatusEl.textContent = 'läuft…';
+    astarStatusEl.textContent = 'läuft…';
+    updateInformedButtons();
+  });
+
+  btnIPause.addEventListener('click', () => {
+    if (mode2 !== 'running') return;
+    mode2 = 'paused';
+    updateInformedButtons();
+  });
+
+  btnIStep.addEventListener('click', () => {
+    if (mode2 === 'running' || mode2 === 'done') return;
+    stepInformedAll();
+  });
+
+  btnIReset.addEventListener('click', resetInformed);
+
+  speed2Input.addEventListener('input', () => {
+    speed2Value.textContent = speed2Input.value + 'x';
+  });
+
+  wgraph = buildWeightedGraph();
+  resetInformed();
 })();
