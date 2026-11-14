@@ -222,6 +222,11 @@
         dfs.container.push({ node: v, nextIdx: 0 });
         dfs.treeEdges.push([top.node, v]);
         flash.dfs = { edge: [top.node, v], time: performance.now() };
+        if (v === goalNode) {
+          dfs.done = true;
+          dfs.found = true;
+          dfsStatusEl.textContent = '🎉 Ziel gefunden!';
+        }
         return;
       }
     }
