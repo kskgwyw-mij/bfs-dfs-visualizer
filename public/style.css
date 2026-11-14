@@ -144,6 +144,11 @@ select {
   min-width: 280px;
 }
 
+.boards-single .panel {
+  flex: 0 1 480px;
+  min-width: 280px;
+}
+
 .boards3 .vs-divider {
   width: 40px;
   height: 40px;
