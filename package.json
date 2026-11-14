@@ -1,0 +1,13 @@
+{
+  "name": "bfs-dfs-visualizer",
+  "version": "1.0.0",
+  "description": "Visualizes BFS and DFS side by side in the browser, served by a zero-dependency Node.js server.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "license": "MIT"
+}
