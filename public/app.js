@@ -74,6 +74,7 @@
       n: 8,
       nodes,
       adj,
+      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
     };
@@ -130,6 +131,7 @@
       n,
       nodes,
       adj,
+      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: Array.from({ length: n }, (_, i) => String(i))
     };
@@ -209,8 +211,8 @@
         return;
       }
     }
-    while (top.nextIdx < graph.adj[top.node].length) {
-      const v = graph.adj[top.node][top.nextIdx];
+    while (top.nextIdx < graph.dfsAdj[top.node].length) {
+      const v = graph.dfsAdj[top.node][top.nextIdx];
       top.nextIdx++;
       if (!dfs.visited.has(v) && !dfs.container.some((e) => e.node === v)) {
         dfs.container.push({ node: v, nextIdx: 0 });
