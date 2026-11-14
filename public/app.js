@@ -59,8 +59,8 @@
       { x: 500, y: 160 }
     ];
     const edgePairs = [
-      [0, 1], [0, 4], [1, 2], [1, 3], [2, 3],
-      [2, 7], [3, 6], [4, 3], [4, 5], [5, 6], [6, 7]
+      [0, 1], [0, 4], [1, 2], [1, 3], [2, 7],
+      [3, 6], [4, 3], [4, 5], [5, 6], [6, 7]
     ];
     const adj = Array.from({ length: 8 }, () => []);
     const edges = [];
@@ -74,7 +74,6 @@
       n: 8,
       nodes,
       adj,
-      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: ['S', 'A', 'B', 'C', 'D', 'E', 'F', 'G']
     };
@@ -131,7 +130,6 @@
       n,
       nodes,
       adj,
-      dfsAdj: adj.map((list) => [...list].reverse()),
       edges,
       labels: Array.from({ length: n }, (_, i) => String(i))
     };
@@ -141,13 +139,32 @@
     return {
       kind,
       visited: new Set(),
-      container: kind === 'bfs' ? [startNode] : [{ node: startNode, nextIdx: 0 }],
+      container: [startNode],
+      parent: new Array(graph.n).fill(-1),
       treeEdges: [],
       steps: 0,
       current: null,
       done: false,
-      found: false
+      found: false,
+      path: null
     };
+  }
+
+  function finishFound(state, statusEl) {
+    state.done = true;
+    state.found = true;
+    const path = [];
+    const seen = new Set();
+    let cur = goalNode;
+    while (cur !== -1 && !seen.has(cur)) {
+      path.push(cur);
+      seen.add(cur);
+      if (cur === startNode) break;
+      cur = state.parent[cur];
+    }
+    path.reverse();
+    state.path = path;
+    statusEl.textContent = `🎉 ${path.map((i) => graph.labels[i]).join('-')} (${path.length - 1} Schritte)`;
   }
 
   function resetSearch() {
@@ -173,22 +190,26 @@
     bfs.steps++;
     if (bfs.visited.has(u)) {
       bfs.current = null;
+      bfsStatusEl.textContent = `${graph.labels[u]} übersprungen (Duplikat)`;
       return;
     }
     bfs.visited.add(u);
     bfs.current = u;
     if (u === goalNode) {
-      bfs.done = true;
-      bfs.found = true;
-      bfsStatusEl.textContent = '🎉 Ziel gefunden!';
+      finishFound(bfs, bfsStatusEl);
       return;
     }
+    const newEdges = [];
     for (const v of graph.adj[u]) {
-      if (!bfs.visited.has(v) && !bfs.container.includes(v)) {
+      if (!bfs.visited.has(v)) {
+        if (bfs.parent[v] === -1) bfs.parent[v] = u;
         bfs.container.push(v);
-        bfs.treeEdges.push([u, v]);
-        flash.bfs = { edge: [u, v], time: performance.now() };
+        newEdges.push([u, v]);
       }
+    }
+    if (newEdges.length) {
+      bfs.treeEdges.push(...newEdges);
+      flash.bfs = { edges: newEdges, time: performance.now() };
     }
   }
 
@@ -199,32 +220,31 @@
       dfsStatusEl.textContent = 'fertig (Ziel nicht gefunden)';
       return;
     }
-    const top = dfs.container[dfs.container.length - 1];
+    const u = dfs.container.pop();
     dfs.steps++;
-    if (top.nextIdx === 0) {
-      dfs.visited.add(top.node);
-      dfs.current = top.node;
-      if (top.node === goalNode) {
-        dfs.done = true;
-        dfs.found = true;
-        dfsStatusEl.textContent = '🎉 Ziel gefunden!';
-        return;
+    if (dfs.visited.has(u)) {
+      dfs.current = null;
+      dfsStatusEl.textContent = `${graph.labels[u]} übersprungen (Duplikat)`;
+      return;
+    }
+    dfs.visited.add(u);
+    dfs.current = u;
+    if (u === goalNode) {
+      finishFound(dfs, dfsStatusEl);
+      return;
+    }
+    const newEdges = [];
+    for (const v of graph.adj[u]) {
+      if (!dfs.visited.has(v)) {
+        if (dfs.parent[v] === -1) dfs.parent[v] = u;
+        dfs.container.push(v);
+        newEdges.push([u, v]);
       }
     }
-    while (top.nextIdx < graph.dfsAdj[top.node].length) {
-      const v = graph.dfsAdj[top.node][top.nextIdx];
-      top.nextIdx++;
-      if (!dfs.visited.has(v) && !dfs.container.some((e) => e.node === v)) {
-        dfs.container.push({ node: v, nextIdx: 0 });
-        dfs.treeEdges.push([top.node, v]);
-        flash.dfs = { edge: [top.node, v], time: performance.now() };
-        return;
-      }
+    if (newEdges.length) {
+      dfs.treeEdges.push(...newEdges);
+      flash.dfs = { edges: newEdges, time: performance.now() };
     }
-    dfs.container.pop();
-    dfs.current = dfs.container.length
-      ? dfs.container[dfs.container.length - 1].node
-      : null;
   }
 
   function stepBoth() {
@@ -240,8 +260,7 @@
 
   function frontierSet(state) {
     const set = new Set();
-    for (const entry of state.container) {
-      const node = typeof entry === 'number' ? entry : entry.node;
+    for (const node of state.container) {
       if (!state.visited.has(node)) set.add(node);
     }
     return set;
@@ -257,8 +276,9 @@
     const activeFlash = flash[state.kind];
     const flashSet = new Set();
     if (activeFlash && now - activeFlash.time < 450) {
-      const [a, b] = activeFlash.edge;
-      flashSet.add(Math.min(a, b) + '-' + Math.max(a, b));
+      for (const [a, b] of activeFlash.edges) {
+        flashSet.add(Math.min(a, b) + '-' + Math.max(a, b));
+      }
     }
 
     for (const [a, b] of edges) {
@@ -361,7 +381,7 @@
     for (let i = stack.length - 1; i >= 0; i--) {
       const chip = document.createElement('span');
       chip.className = 'chip' + (i === stack.length - 1 ? ' top' : '');
-      chip.textContent = graph.labels[stack[i].node];
+      chip.textContent = graph.labels[stack[i]];
       dfsStackEl.appendChild(chip);
     }
     if (stack.length === 0) {
@@ -374,8 +394,6 @@
     dfsVisitedEl.textContent = dfs.visited.size;
     bfsStepEl.textContent = bfs.steps;
     dfsStepEl.textContent = dfs.steps;
-    if (!bfs.done) bfsStatusEl.textContent = mode === 'running' ? 'läuft…' : mode === 'paused' ? 'pausiert' : 'bereit';
-    if (!dfs.done) dfsStatusEl.textContent = mode === 'running' ? 'läuft…' : mode === 'paused' ? 'pausiert' : 'bereit';
   }
 
   function updateButtons() {
@@ -422,8 +440,9 @@
     if (mode === 'done') return;
     mode = 'running';
     lastStepTime = 0;
+    bfsStatusEl.textContent = 'läuft…';
+    dfsStatusEl.textContent = 'läuft…';
     updateButtons();
-    updateStats();
   });
 
   btnPause.addEventListener('click', () => {
