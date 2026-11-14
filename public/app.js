@@ -361,7 +361,7 @@
   function render() {
     drawBoard(bfsCtx, bfs, '#38bdf8');
     drawBoard(dfsCtx, dfs, '#f472b6');
-    if (wgraph) {
+    if (ucs && greedy && astar) {
       drawWeightedBoard(ucsCtx, ucs, '#34d399', 'ucs');
       drawWeightedBoard(greedyCtx, greedy, '#fb923c', 'greedy');
       drawWeightedBoard(astarCtx, astar, '#a78bfa', 'astar');
@@ -540,8 +540,9 @@
   const astarStatusEl = document.getElementById('astar-status');
 
   const W_START = 0;
-  const W_GOAL = 5;
-  let wgraph = null;
+
+  let wgraphUG = null;
+  let wgraphA = null;
   let ucs = null;
   let greedy = null;
   let astar = null;
@@ -549,7 +550,42 @@
   let lastStepTime2 = 0;
   let flash2 = { ucs: null, greedy: null, astar: null };
 
-  function buildWeightedGraph() {
+  function buildWeightedGraphUG() {
+    const nodes = [
+
+      { x: 75, y: 210 },
+      { x: 240, y: 210 },
+      { x: 240, y: 355 },
+      { x: 405, y: 210 },
+      { x: 405, y: 65 },
+      { x: 75, y: 355 },
+      { x: 75, y: 65 },
+      { x: 405, y: 355 }
+    ];
+    const h = [5, 4, 6, 2, 4, 0];
+    const edgeList = [
+
+      [0, 1, 5], [0, 5, 3], [0, 6, 4],
+      [1, 4, 8], [1, 2, 4], [2, 3, 3], [3, 7, 5], [4, 7, 4]
+
+    ];
+    const adj = Array.from({ length: 6 }, () => []);
+    for (const [a, b, w] of edgeList) {
+      adj[a].push({ node: b, w });
+      adj[b].push({ node: a, w });
+    }
+    adj.forEach((list) => list.sort((x, y) => x.node - y.node));
+    return {
+      n: 6,
+      nodes,
+      adj,
+      edges: edgeList,
+      labels: ['S', 'A', 'B', 'C', 'D', 'G'],
+      h
+    };
+  }
+
+  function buildWeightedGraphAstar() {
     const nodes = [
       { x: 60, y: 210 },
       { x: 180, y: 90 },
@@ -579,12 +615,13 @@
     };
   }
 
-  function createInformedState(kind) {
+  function createInformedState(kind, g) {
     return {
       kind,
+      graph: g,
       visited: new Set(),
       open: [{ node: W_START, g: 0, parent: -1 }],
-      parent: new Array(wgraph.n).fill(-1),
+      parent: new Array(g.n).fill(-1),
       treeEdges: [],
       steps: 0,
       current: null,
@@ -595,16 +632,16 @@
     };
   }
 
-  function prio(mode, entry) {
+  function prio(mode, entry, g) {
     if (mode === 'ucs') return entry.g;
-    if (mode === 'greedy') return wgraph.h[entry.node];
-    return entry.g + wgraph.h[entry.node];
+    if (mode === 'greedy') return g.h[entry.node];
+    return entry.g + g.h[entry.node];
   }
 
   function popMin(state, mode) {
     let best = 0;
     for (let i = 1; i < state.open.length; i++) {
-      if (prio(mode, state.open[i]) < prio(mode, state.open[best])) best = i;
+      if (prio(mode, state.open[i], state.graph) < prio(mode, state.open[best], state.graph)) best = i;
     }
     return state.open.splice(best, 1)[0];
   }
@@ -614,7 +651,8 @@
     state.found = true;
     const path = [];
     const seen = new Set();
-    let cur = W_GOAL;
+    const goal = state.graph.n - 1;
+    let cur = goal;
     while (cur !== -1 && !seen.has(cur)) {
       path.push(cur);
       seen.add(cur);
@@ -623,7 +661,7 @@
     }
     path.reverse();
     state.path = path;
-    statusEl.textContent = `🎉 ${path.map((i) => wgraph.labels[i]).join('-')} (Kosten: ${state.cost})`;
+    statusEl.textContent = `🎉 ${path.map((i) => state.graph.labels[i]).join('-')} (Kosten: ${state.cost})`;
   }
 
   function informedStep(state, mode, statusEl) {
@@ -637,19 +675,19 @@
     state.steps++;
     if (state.visited.has(entry.node)) {
       state.current = null;
-      statusEl.textContent = `${wgraph.labels[entry.node]} übersprungen (Duplikat)`;
+      statusEl.textContent = `${state.graph.labels[entry.node]} übersprungen (Duplikat)`;
       return;
     }
     state.visited.add(entry.node);
     state.parent[entry.node] = entry.parent;
     state.current = entry.node;
-    if (entry.node === W_GOAL) {
+    if (entry.node === state.graph.n - 1) {
       state.cost = entry.g;
       finishInformed(state, statusEl);
       return;
     }
     const newEdges = [];
-    for (const nb of wgraph.adj[entry.node]) {
+    for (const nb of state.graph.adj[entry.node]) {
       if (!state.visited.has(nb.node)) {
         state.open.push({ node: nb.node, g: entry.g + nb.w, parent: entry.node });
         newEdges.push([entry.node, nb.node]);
@@ -664,7 +702,7 @@
   function sortedOpen(state, mode) {
     return state.open
       .map((e, i) => ({ e, i }))
-      .sort((x, y) => prio(mode, x.e) - prio(mode, y.e) || x.i - y.i)
+      .sort((x, y) => prio(mode, x.e, state.graph) - prio(mode, y.e, state.graph) || x.i - y.i)
       .map((o) => o.e);
   }
 
@@ -680,7 +718,7 @@
       sorted.forEach((entry, idx) => {
         const chip = document.createElement('span');
         chip.className = 'chip' + (idx === 0 ? ' top' : '');
-        chip.textContent = `${wgraph.labels[entry.node]}:${prio(mode, entry)}`;
+        chip.textContent = `${state.graph.labels[entry.node]}:${prio(mode, entry, state.graph)}`;
         el.appendChild(chip);
       });
       if (sorted.length === 0) {
@@ -705,9 +743,9 @@
   }
 
   function resetInformed() {
-    ucs = createInformedState('ucs');
-    greedy = createInformedState('greedy');
-    astar = createInformedState('astar');
+    ucs = createInformedState('ucs', wgraphUG);
+    greedy = createInformedState('greedy', wgraphUG);
+    astar = createInformedState('astar', wgraphA);
     mode2 = 'idle';
     flash2 = { ucs: null, greedy: null, astar: null };
     ucsStatusEl.textContent = 'bereit';
@@ -740,7 +778,7 @@
   }
 
   function drawWeightedBoard(ctx, state, accent, mode) {
-    const { n, nodes, edges, h } = wgraph;
+    const { n, nodes, edges, h } = state.graph;
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     const treeSet = new Set(state.treeEdges.map(([a, b]) => Math.min(a, b) + '-' + Math.max(a, b)));
@@ -816,7 +854,7 @@
     for (let i = 0; i < n; i++) {
       const p = nodes[i];
       const isStart = i === W_START;
-      const isGoal = i === W_GOAL;
+      const isGoal = i === n - 1;
       let fill = COLORS.unvisited;
       let r = 16;
       if (state.visited.has(i)) fill = COLORS.visited;
@@ -842,7 +880,7 @@
       ctx.font = 'bold 12px Segoe UI, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(wgraph.labels[i], p.x, p.y + 0.5);
+      ctx.fillText(state.graph.labels[i], p.x, p.y + 0.5);
 
       ctx.fillStyle = 'rgba(230, 236, 255, 0.65)';
       ctx.font = '10px Segoe UI, sans-serif';
@@ -877,6 +915,7 @@
     speed2Value.textContent = speed2Input.value + 'x';
   });
 
-  wgraph = buildWeightedGraph();
+  wgraphUG = buildWeightedGraphUG();
+  wgraphA = buildWeightedGraphAstar();
   resetInformed();
 })();
