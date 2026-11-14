@@ -13,13 +13,14 @@ Danach im Browser öffnen: http://localhost:3000 (Port per `PORT`-Umgebungsvaria
 
 ## Funktionen
 
+- **Standard-Beispiel**: Beim Start ist der klassische Lehrbuch-Graph geladen (Knoten S, A–F, G; S = Start, G = grünes Ziel)
 - **Seiten-an-Seiten-Vergleich**: BFS (Queue/FIFO, links) und DFS (Stack/LIFO, rechts) laufen synchron auf identischem Graphen
 - **Animierte Canvas-Darstellung**: Knoten pulsieren, Kanten leuchten beim Entdecken auf, Farben für unbesucht / in Queue/Stack / aktuell / besucht / Ziel
 - **Live-Strukturen**: Warteschlange bzw. Stapel werden als Chips unter jedem Canvas angezeigt
 - **Steuerung**: Start, Pause, Einzelschritt, Zurücksetzen, Neuer Graph
 - **Geschwindigkeit**: 1x–20x einstellbar
 - **Startknoten wählbar** (Dropdown oder Klick auf einen Knoten im Canvas); der gegenüberliegende Knoten ist das Ziel – man sieht, welcher Algorithmus ihn zuerst findet
-- **Graphgröße**: 8–15 Knoten, zufällig generiert (Spannbaum + zusätzliche Kanten für Zyklen)
+- **Graphwahl**: Beispiel-Graph (Standard) oder zufällig generiert mit 8–15 Knoten (Spannbaum + zusätzliche Kanten für Zyklen)
 
 ## Architektur
 
